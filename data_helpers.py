@@ -3,7 +3,7 @@ import re
 import itertools
 from collections import Counter
 from nltk.corpus import movie_reviews
-from nltk.tokenize import sent_tokenize
+from nltk.tokenize import sent_tokenize, word_tokenize
 
 
 def clean_str(string):
@@ -27,11 +27,10 @@ def clean_str(string):
     return string.strip().lower()
 
 
+def clean_senetnce(sentence):
+    return word_tokenize(sentence)
+
 def load_data_and_labels():
-    """
-    Loads MR polarity data from files, splits the data into words and generates labels.
-    Returns split sentences and labels.
-    """
     # Load data from files
 
     # positive_examples = list(open("./data/rt-polaritydata/rt-polarity.pos", "r").readlines())

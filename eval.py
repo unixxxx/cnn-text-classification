@@ -4,44 +4,44 @@ import numpy as np
 import tensorflow as tf
 import data_helpers
 
-# Parameters
-# ==================================================
-
-# Eval Parameters
+# Define Parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
 tf.flags.DEFINE_string("checkpoint_dir", "", "Checkpoint directory from training run")
-
-# Misc Parameters
-tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
-tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
-
+tf.flags.DEFINE_string("sentence", "the movie was bad", "sentence to classify")
 
 FLAGS = tf.flags.FLAGS
-FLAGS._parse_flags()
-print("\nParameters:")
-for attr, value in sorted(FLAGS.__flags.items()):
-    print("{}={}".format(attr.upper(), value))
-print("")
 
-# Load data. Load your own data here
-print("Loading data...")
+#######################################################################################################################
+# process the raw sentence
+new_review = data_helpers.clean_senetnce(FLAGS.sentence)
 
-x_test, y_test, vocabulary, vocabulary_inv = data_helpers.load_data()
-y_test = np.argmax(y_test, axis=1)
+# load vocabulary
+sentences, _ = data_helpers.load_data_and_labels()
+sequence_length = max(len(x) for x in sentences)
+sentences_padded = data_helpers.pad_sentences(sentences)
+vocabulary, vocabulary_inv = data_helpers.build_vocab(sentences_padded)
 
-print("Vocabulary size: {:d}".format(len(vocabulary)))
-print("Test set size {:d}".format(len(y_test)))
+num_padding = sequence_length - len(new_review)
+new_sentence = new_review + ["<PAD/>"] * num_padding
 
-print("\nEvaluating...\n")
+# convert sentence to input matrix
+array = []
+for word in new_sentence:
+    try:
+        word_vector=vocabulary[word]
+    except KeyError:
+        word_vector=vocabulary["<PAD/>"]
+    array.append(word_vector)
+x=np.array([array])
+
+#######################################################################################################################
 
 # Evaluation
 # ==================================================
 checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
 graph = tf.Graph()
 with graph.as_default():
-    session_conf = tf.ConfigProto(
-      allow_soft_placement=FLAGS.allow_soft_placement,
-      log_device_placement=FLAGS.log_device_placement)
+    session_conf = tf.ConfigProto()
     sess = tf.Session(config=session_conf)
     with sess.as_default():
         # Load the saved meta graph and restore variables
@@ -50,25 +50,21 @@ with graph.as_default():
 
         # Get the placeholders from the graph by name
         input_x = graph.get_operation_by_name("input_x").outputs[0]
-        # input_y = graph.get_operation_by_name("input_y").outputs[0]
         dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
 
         # Tensors we want to evaluate
         predictions = graph.get_operation_by_name("output/predictions").outputs[0]
 
         # Generate batches for one epoch
-        batches = data_helpers.batch_iter(x_test, FLAGS.batch_size, 1, shuffle=False)
+        batches = data_helpers.batch_iter(x, FLAGS.batch_size, 1, shuffle=False)
 
         # Collect the predictions here
         all_predictions = []
 
         for x_test_batch in batches:
-            # print(x_test_batch)
             batch_predictions = sess.run(predictions, feed_dict={input_x: x_test_batch, dropout_keep_prob: 1.0})
             all_predictions = np.concatenate([all_predictions, batch_predictions])
 
-
 # Print accuracy
-correct_predictions = float(sum(all_predictions == y_test))
-print("Total number of test examples: {}".format(len(y_test)))
-print("Accuracy: {:g}".format(correct_predictions/float(len(y_test))))
+print('entered text: {}'.format(FLAGS.sentence))
+print('predictions: {}'.format('negative' if all_predictions[0] == 0.0 else 'positive'))

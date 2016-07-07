@@ -44,6 +44,7 @@ optional arguments:
   --log_device_placement LOG_DEVICE_PLACEMENT
                         Log placement of ops on devices
   --nolog_device_placement
+  --sentence sentence to classify
 
 ```
 
@@ -56,7 +57,7 @@ Train:
 ## Evaluating
 
 ```bash
-./eval.py --checkpoint_dir="./runs/1459637919/checkpoints/"
+./eval.py --checkpoint_dir="./runs/1459637919/checkpoints/" --sentence="the film was great"
 ```
 
 Replace the checkpoint dir with the output from the training. To use your own data, change the `eval.py` script to load your data.
